@@ -28,14 +28,20 @@ const startRecording = document.getElementById('startRecording');
 const stopRecording = document.getElementById('stopRecording');
 
 startRecording.addEventListener('click', () => {
-  navigator.mediaDevices.getUserMedia({ video: true })
+  const constraints = {
+    audio: true,
+    video: {
+      facingMode: document.getElementById("facingInput").value // Use 'user' for front camera
+    }
+  };
+
+  navigator.mediaDevices.getUserMedia(constraints)
     .then(stream => {
       video.srcObject = stream;
       video.play();
       document.body.appendChild(video);
 
       recordedBlobs = [];
-      // Attempting to use a more universally supported format
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
 
       mediaRecorder.ondataavailable = (event) => {
