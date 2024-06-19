@@ -1,4 +1,5 @@
 const video = document.createElement('video');
+video.setAttribute("playsinline", true);
 const uploadedVideo = document.getElementById('uploadedVideo');
 let mediaRecorder;
 let recordedBlobs;
@@ -42,7 +43,7 @@ startRecording.addEventListener('click', () => {
       document.body.appendChild(video);
 
       recordedBlobs = [];
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      mediaRecorder = new MediaRecorder(stream);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -64,6 +65,7 @@ stopRecording.addEventListener('click', () => {
     const blob = new Blob(recordedBlobs, { type: 'video/webm' });
     const videoURL = URL.createObjectURL(blob);
     const newVideo = document.createElement('video');
+    newVideo.setAttribute("playsinline", true);
     newVideo.src = videoURL;
     newVideo.controls = true;
     document.body.appendChild(newVideo);
