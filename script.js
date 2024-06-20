@@ -67,6 +67,8 @@ startRecording.addEventListener('click', () => {
     audio: true,
     video: {
       facingMode: document.getElementById("facingInput").value, // Use 'user' for front camera
+      width: { ideal: 640 },
+      height: { ideal: 480 },
       frameRate: {
         ideal: 30,
         max: 40
@@ -81,7 +83,11 @@ startRecording.addEventListener('click', () => {
       document.body.appendChild(video);
 
       recordedBlobs = [];
-      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder = new MediaRecorder(stream, {
+        audioBitsPerSecond: 64000,
+        videoBitsPerSecond: 1250000,
+        mimeType: 'video/mp4; codecs="avc1.424028, mp4a.40.2"',
+      });
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -100,13 +106,14 @@ stopRecording.addEventListener('click', () => {
   mediaRecorder.stop();
 
   mediaRecorder.onstop = () => {
-    const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+    const blob = new Blob(recordedBlobs, { type: 'video/mp4' });
     const videoURL = URL.createObjectURL(blob);
     const newVideo = document.createElement('video');
     newVideo.setAttribute("playsinline", true);
     newVideo.src = videoURL;
     newVideo.controls = true;
     newVideo.id = "preSubmit"
+    console.log(newVideo.bitrate)
     document.body.appendChild(newVideo);
 
     video.srcObject.getTracks().forEach(track => track.stop());
@@ -126,7 +133,7 @@ stopRecording.addEventListener('click', () => {
 
       // Create a form data object to send the video file
       const formData = new FormData();
-      formData.append('file', blob, 'video.webm');
+      formData.append('file', blob, 'SPOILER_video.mp4');
       var thumbData = new FormData()
       thumbData.append("source", b64toBlob(capture()), 'thumb.png');
 
@@ -137,10 +144,6 @@ stopRecording.addEventListener('click', () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ "content": "Video from iOS Version " + ver })
-      })
-      fetch(webhookUrl, {
-        method: 'POST',
-        body: thumbData
       })
       fetch(webhookUrl, {
         method: 'POST',
