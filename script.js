@@ -5,7 +5,7 @@ const uploadedVideo = document.getElementById('uploadedVideo');
 let mediaRecorder;
 let recordedBlobs;
 let recordingRunTime = 0;
-let recordingRolloverTime = 10;
+let recordingRolloverTime = 60;
 let recordingRunInterval;
 let rolloverCount = 0;
 let userStop = true;
