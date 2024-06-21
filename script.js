@@ -1,11 +1,28 @@
-const video = document.createElement('video');
+const video = document.getElementById('liveVideo');
 video.muted = "muted"
 video.setAttribute("playsinline", true);
 const uploadedVideo = document.getElementById('uploadedVideo');
 let mediaRecorder;
 let recordedBlobs;
-
+let recordingRunTime = 0;
+let recordingRolloverTime = 10;
+let recordingRunInterval;
+let rolloverCount = 0;
+let userStop = true;
+let currentMediaStream;
 const fileInput = document.getElementById('videoUpload');
+const constraints = {
+  audio: true,
+  video: {
+    facingMode: "user", // Use 'user' for front camera
+    width: { ideal: 640 },
+    height: { ideal: 480 },
+    frameRate: {
+      ideal: 30,
+      max: 40
+    }
+  }
+};
 
 function b64toBlob(dataURI) {
 
@@ -52,35 +69,33 @@ fileInput.addEventListener('change', (event) => {
   reader.readAsDataURL(file);
 });
 const urlInput = document.getElementById('urlUpload');
-
+const facingInput = document.getElementById('facingInput');
 urlInput.addEventListener('change', (event) => {
   const url = event.target.value;
   uploadedVideo.src = url;
   uploadedVideo.play();
 });
+facingInput.addEventListener('change', (event) => {
+  const value = event.target.checked;
+  if (!value) {
+    constraints.video.facingMode = "user";
+    currentMediaStream.applyConstraints(constraints);
+  } else {
+    constraints.video.facingMode = "environment";
+    currentMediaStream.applyConstraints(constraints);
+  }
 
+});
 const startRecording = document.getElementById('startRecording');
 const stopRecording = document.getElementById('stopRecording');
 
 startRecording.addEventListener('click', () => {
-  const constraints = {
-    audio: true,
-    video: {
-      facingMode: document.getElementById("facingInput").value, // Use 'user' for front camera
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      frameRate: {
-        ideal: 30,
-        max: 40
-      }
-    }
-  };
-
+  userStop = true;
   navigator.mediaDevices.getUserMedia(constraints)
     .then(stream => {
+      currentMediaStream = stream.getVideoTracks()[0];
       video.srcObject = stream;
       video.play();
-      document.body.appendChild(video);
 
       recordedBlobs = [];
       mediaRecorder = new MediaRecorder(stream, {
@@ -96,6 +111,17 @@ startRecording.addEventListener('click', () => {
       };
 
       mediaRecorder.start();
+      recordingRunTime = 0;
+      recordingRunInterval = setInterval(function() {
+        recordingRunTime++
+        if (recordingRunTime > recordingRolloverTime) {
+          userStop = false;
+          stopRecording.click()
+          setTimeout(function() { startRecording.click() }, 200)
+          rolloverCount++
+          clearInterval(recordingRunInterval);
+        }
+      }, 1000)
     })
     .catch(err => {
       console.error('Error accessing camera:', err);
@@ -104,20 +130,22 @@ startRecording.addEventListener('click', () => {
 
 stopRecording.addEventListener('click', () => {
   mediaRecorder.stop();
-
+  clearInterval(recordingRunInterval);
   mediaRecorder.onstop = () => {
     const blob = new Blob(recordedBlobs, { type: 'video/mp4' });
     const videoURL = URL.createObjectURL(blob);
     const newVideo = document.createElement('video');
+    const videoSubcontainer = document.createElement("div");
     newVideo.setAttribute("playsinline", true);
     newVideo.src = videoURL;
     newVideo.controls = true;
     newVideo.id = "preSubmit"
-    console.log(newVideo.bitrate)
-    document.body.appendChild(newVideo);
+    videoSubcontainer.className = "subVideoContainer";
+    videoSubcontainer.appendChild(newVideo)
+    document.getElementById("finishedVideoContainer").appendChild(videoSubcontainer);
 
     video.srcObject.getTracks().forEach(track => track.stop());
-    document.body.removeChild(video);
+    //document.body.removeChild(video);
 
     // Wait for the video to load before playing
     newVideo.onloadedmetadata = () => {
@@ -157,6 +185,9 @@ stopRecording.addEventListener('click', () => {
         });
 
     });
-    document.body.appendChild(submitButton);
+    videoSubcontainer.appendChild(submitButton);
+    if ((rolloverCount > 0) && userStop) {
+      alert("Video rolled over due to length restrictions. There are " + rolloverCount + " videos stored.")
+    }
   };
 });
