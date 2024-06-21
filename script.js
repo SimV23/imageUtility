@@ -1,4 +1,4 @@
-const video = document.getElementById('liveVideo');
+const video = document.getElementById('liveVideo'); 
 video.muted = "muted"
 video.setAttribute("playsinline", true);
 const uploadedVideo = document.getElementById('uploadedVideo');
