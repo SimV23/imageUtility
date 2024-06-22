@@ -1,0 +1,10 @@
+CACHE MANIFEST
+# v1.0 : 06-21-2024
+
+CACHE:
+# pages
+index.html
+
+# styles & scripts
+style.css
+script.js
