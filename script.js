@@ -1,4 +1,3 @@
-
 let mediaRecorder;
 let recordedBlobs;
 let recordingRunTime = 0;
@@ -34,6 +33,7 @@ const video = document.getElementById('liveVideo');
 const uploadedVideo = document.getElementById('uploadedVideo');
 const timer = document.getElementById('timer');
 const downloadSavebutton = document.getElementById('downloadSavebutton');
+const blobContainer = document.getElementById("blobs");
 video.muted = "muted"
 video.setAttribute("playsinline", true);
 
@@ -204,14 +204,16 @@ stopRecording.addEventListener('click', () => {
     const videoURL = URL.createObjectURL(blob);
     const newVideo = document.createElement('video');
     const videoSubcontainer = document.createElement("div");
+    const blobUrlDisplay = document.createElement("p");
     newVideo.setAttribute("playsinline", true);
     newVideo.src = videoURL;
     newVideo.controls = true;
     newVideo.id = "preSubmit"
     videoSubcontainer.className = "subVideoContainer";
     videoSubcontainer.appendChild(newVideo)
+    blobUrlDisplay.innerText = videoURL;
     document.getElementById("finishedVideoContainer").appendChild(videoSubcontainer);
-
+    blobContainer.appendChild(blobUrlDisplay);
     video.srcObject.getTracks().forEach(track => track.stop());
     //document.body.removeChild(video);
 
