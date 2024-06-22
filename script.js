@@ -26,26 +26,35 @@ let constraints = {
 };
 
 const fileInput = document.getElementById('videoUpload');
+const saveInput = document.getElementById('saveUpload');
 const uploadAll = document.getElementById("uploadAll");
 const startRecording = document.getElementById('startRecording');
 const stopRecording = document.getElementById('stopRecording');
 const video = document.getElementById('liveVideo');
 const uploadedVideo = document.getElementById('uploadedVideo');
 const timer = document.getElementById('timer');
-
+const downloadSavebutton = document.getElementById('downloadSavebutton');
 video.muted = "muted"
 video.setAttribute("playsinline", true);
 
-function b64toBlob(dataURI) {
+const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+  const byteCharacters = atob(b64Data);
+  const byteArrays = [];
 
-  var byteString = atob(dataURI.split(',')[1]);
-  var ab = new ArrayBuffer(byteString.length);
-  var ia = new Uint8Array(ab);
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
 
-  for (var i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
   }
-  return new Blob([ab], { type: 'image/jpeg' });
+
+  const blob = new Blob(byteArrays, {type: contentType});
+  return blob;
 }
 
 function iOSversion() {
@@ -80,6 +89,19 @@ fileInput.addEventListener('change', (event) => {
 
   reader.readAsDataURL(file);
 });
+
+saveInput.addEventListener('change', (event) => {
+  var file = event.target.files[0];
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = JSON.parse(e.target.result);
+    loadSave(data);
+  };
+  reader.readAsText(file);
+});
+
+
 const urlInput = document.getElementById('urlUpload');
 const facingInput = document.getElementById('facingInput');
 urlInput.addEventListener('change', (event) => {
@@ -110,6 +132,15 @@ uploadAll.addEventListener('click', () => {
   })
   batchUpload = false;
 })
+
+downloadSavebutton.addEventListener('click', () => {
+  if (videoUploadButtons.length == 0) {
+    alert("There is nothing to save!")
+    return;
+  }
+  generateSave();
+})
+
 
 startRecording.addEventListener('click', () => {
   timer.style.display = "flex";
@@ -199,8 +230,6 @@ stopRecording.addEventListener('click', () => {
       // Create a form data object to send the video file
       const formData = new FormData();
       formData.append('file', blob, 'SPOILER_video.mp4');
-      var thumbData = new FormData()
-      thumbData.append("source", b64toBlob(capture()), 'thumb.png');
 
       // Send the video file to the Discord webhook
       if (!batchUpload) {
@@ -238,3 +267,103 @@ stopRecording.addEventListener('click', () => {
     }
   };
 });
+
+const blobToBase64 = async blob => {
+  if (typeof blob === "string") {
+    blob = await fetch(blob).then(r => r.blob());
+  }
+  const reader = new FileReader();
+  reader.readAsDataURL(blob);
+  return new Promise(resolve => {
+    reader.onloadend = () => {
+      resolve(reader.result);
+    };
+  });
+};
+
+async function generateSave() {
+  var savedFile = [];
+  var videoArray = Array.from(document.getElementById("finishedVideoContainer").children);
+  videoArray.forEach(async function(videoElement) {
+    var sourceBlob = await blobToBase64(videoElement.children[0].src).then(result => {
+      savedFile.push(result)
+      if (savedFile.length == videoArray.length) {
+        const dlblob = new Blob([JSON.stringify(savedFile)], { type: 'application/json' });
+        const url = URL.createObjectURL(dlblob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = Math.floor(1000 * Math.sqrt(Math.random())).toString() + '-savestate.libblesave';
+        link.click();
+      }
+    })
+  })
+}
+
+function loadSave(save) {
+  save.forEach(function(video) {
+    var thisStop = stopIndex;
+    stopIndex++;
+    var blob = b64toBlob(video.replace("data:video/mp4;base64,", ""), 'video/mp4');
+    const videoURL = URL.createObjectURL(blob);
+    const newVideo = document.createElement('video');
+    const videoSubcontainer = document.createElement("div");
+    newVideo.setAttribute("playsinline", true);
+    newVideo.src = videoURL;
+    newVideo.controls = true;
+    newVideo.id = "preSubmit"
+    videoSubcontainer.className = "subVideoContainer";
+    videoSubcontainer.appendChild(newVideo)
+    document.getElementById("finishedVideoContainer").appendChild(videoSubcontainer);
+
+    // Wait for the video to load before playing
+    newVideo.onloadedmetadata = () => {
+      newVideo.play();
+    };
+
+    // Create a new button to submit to Discord webhook
+    const submitButton = document.createElement('button');
+    submitButton.textContent = 'Submit to Discord';
+    submitButton.addEventListener('click', () => {
+      // Replace with your actual Discord webhook URL
+      const webhookUrl = 'https://discord.com/api/webhooks/1253043926743388170/wfrnvD-bPjbDgC32oqbN99QBjpl38xNKjr4rfVIgxGhc-pUe3lrJPm-uZ2pOCUckt1C-';
+
+      // Create a form data object to send the video file
+      const formData = new FormData();
+      formData.append('file', blob, 'SPOILER_video.mp4');
+
+      // Send the video file to the Discord webhook
+      if (!batchUpload) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ "content": "Video from iOS Version " + ver })
+        }).then(function() {
+          versionAnnounced = true;
+        })
+      }
+      var waitInterval = setInterval(function() {
+        if (versionAnnounced && currentUploadIndex == thisStop) {
+          fetch(webhookUrl, {
+            method: 'POST',
+            body: formData
+          })
+            .then(response => {
+              console.log('Video submitted to Discord successfully!');
+              currentUploadIndex++;
+            })
+            .catch(error => {
+              console.error('Error submitting video to Discord:', error);
+            });
+          clearInterval(waitInterval);
+        }
+      })
+    });
+    videoSubcontainer.appendChild(submitButton);
+    videoUploadButtons.push(submitButton);
+    if ((rolloverCount > 0) && userStop) {
+      alert("Video rolled over due to length restrictions. There are " + rolloverCount + " videos stored.")
+    }
+  })
+}
