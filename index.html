@@ -39,25 +39,29 @@
     </div>
   </div>
   <div id="lowerVideoContainer" class="videoContainer">
+    <p id="timer" style="display: none;">Time: </p>
     <video id="liveVideo" width="320" height="240" autoplay></video>
     <div class="controlsContainer">
       <button id="startRecording">Start</button>
       <button id="stopRecording">Stop</button>
-        <div class="container">
-          <div class="toggle">
-            <input type="checkbox" id="facingInput">
-            <span class="button"></span>
-            <span class="label">⟳</span>
-          </div>
+      <div class="container">
+        <div class="toggle">
+          <input type="checkbox" id="facingInput">
+          <span class="button"></span>
+          <span class="label">⟳</span>
         </div>
+      </div>
     </div>
     <datalist id="facing">
       <option value="environment">
       <option value="user">
     </datalist>
   </div>
-  <div id="finishedVideoContainer" class="videoContainerHorizontal">
-    
+  <div class="videoContainer">
+    <button id="uploadAll" style="display: none;">Upload All Videos</button>
+    <div id="finishedVideoContainer" class="videoContainerHorizontal">
+
+    </div>
   </div>
   <script src="script.js"></script>
 </body>
